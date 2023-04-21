@@ -104,7 +104,7 @@ ggsave('plots/ts_decomposition.jpg', p, height = 6 , width = 11)
 ```{r}
 plot(data_xts[1:144])
 plot(data_xts[1:144*21])
-p <- autoplot(data_xts[1:144*7]) + xlab('Day') + ylab('Power')
+p <- autoplot(data_xts[1:144*7]) + xlab('Day') + ylab('Power') +
 p
 ggsave('plots/one_week.jpg', p, height = 3 , width = 5)
 ```
@@ -174,7 +174,7 @@ tseq <- seq(from = index(data_xts[nrow(data_xts),])+600, length.out = 144*30, by
 data_xts_complete <- c(data_xts, xts(rep(as.numeric(NA), length(tseq)), tseq))
 cat(paste0("from: ", index(data_xts_complete[1]), "\nto:   ", index(data_xts_complete[nrow(data_xts_complete)])))
 ```
-
+################################################################################### MANDARE DA QUI 
 ```{r}
 npred <- 30 # numero di giorni da predire
 small_date <- "2017-10-01 00:00:00"
