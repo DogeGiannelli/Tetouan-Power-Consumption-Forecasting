@@ -14,7 +14,7 @@ output:
 ### Setup and useful functions
 
 ```{r}
-set.seed(500)
+set.seed(2207)
 
 Sys.setenv(TZ='GMT') # imposto la time zone
 
@@ -104,7 +104,7 @@ ggsave('plots/ts_decomposition.jpg', p, height = 6 , width = 11)
 ```{r}
 plot(data_xts[1:144])
 plot(data_xts[1:144*21])
-p <- autoplot(data_xts[1:144*7]) + xlab('Day') + ylab('Power') +
+p <- autoplot(data_xts[1:144*7]) + xlab('Day') + ylab('Power')
 p
 ggsave('plots/one_week.jpg', p, height = 3 , width = 5)
 ```
@@ -194,7 +194,7 @@ test <- data_xts_complete[test_index:nrow(data_xts_complete)]
 cat(paste0("small: ", nrow(small), "\ntrain: ", nrow(train), "\nval:   ", nrow(val), "\ntest:  ", nrow(test)))
 ```
 
-## 2. Data Modeling
+## 2. Time Series Modeling
 
 ```{r}
 stats_results <- data.frame(matrix(nrow=0,ncol=4))
@@ -271,8 +271,8 @@ train |>
 nsdiffs(ts(train, frequency = 144))#require one difference for stationarity 
 ```
 
+################################################################################### 
 #### Mod 1
-
 ```{r}
 #train <- (train^lambda - 1) / lambda
 #data_xts <- (data_xts^lambda - 1) / lambda
@@ -429,95 +429,6 @@ p <- ggplot() +
   ylab('Power')
 p
 ggsave('plots/arima_pred.jpg', p, height = 2 , width = 6)
-```
-
-#### Mod 5
-
-```{r}
-train_meanhour <- period.apply(train, endpoints(train, "hours"), mean)
-index(train_meanhour) <- index(train_meanhour)-600*2
-
-train_byhour <- vector('list', 24)
-for (hour in 1:24) {
-  train_byhour[[hour]] <- train_meanhour[seq(hour, length(train_meanhour), 24)]
-  }
-```
-
-```{r}
-val_meanhour <- period.apply(val, endpoints(val, "hours"), mean)
-index(val_meanhour) <- index(val_meanhour)-600*2
-
-val_byhour <- vector('list', 24)
-for (hour in 1:24) {
-  val_byhour[[hour]] <- val_meanhour[seq(hour, length(val_meanhour), 24)] # to obtain the index
-  }
-```
-
-```{r}
-plot(train_byhour[[9]])
-
-train_byhour[[9]] |> diff() |> Pacf()
-```
-
-```{r}
-arima_mod5_byhour <- vector('list', 24)
-for (hour in 1:24) {
-  arima_mod5_byhour[[hour]] <- Arima(y = ts(train_byhour[[hour]], freq = 7),
-                              order = c(0, 1, 1),
-                              seasonal = c(0, 1, 1),
-                              include.constant = FALSE
-                              )
-  }
-```
-
-```{r}
-# auto arima
-# mod5_byhour <- vector('list', 24)
-# for (hour in 1:24) {
-#   print(hour)
-#   mod5_byhour[[hour]] <- auto.arima(y = ts(train_byhour[[hour]], freq = 7),
-#                                     )
-#   }
-```
-
-```{r}
-arima_pred5_byhour <- vector('list', 24)
-for (hour in 1:24) {
-  arima_pred5_byhour[[hour]] <- forecast(arima_mod5_byhour[[hour]], npred)
-  arima_pred5_byhour[[hour]] <- xts(arima_pred5_byhour[[hour]]$mean, index(val_byhour[[hour]]))
-}
-
-arima_pred5_merged <- do.call(rbind, arima_pred5_byhour) # concatenate the predictions
-```
-
-```{r}
-temp <- xts(rep(as.numeric(NA), length(val)), index(val))
-arima_pred5 <- merge(temp, arima_pred5_merged)$arima_pred5_merged
-arima_pred5 <- na.approx(arima_pred5, na.rm = FALSE)
-arima_pred5 <- na.locf(arima_pred5, na.rm = FALSE)
-arima_pred5 <- na.locf(arima_pred5, fromLast = TRUE)
-names(arima_pred5) <- "V1"
-```
-
-```{r}
-arima_stats5_byhour <- vector('list', 24)
-for (hour in 1:24) {
-  arima_stats5_byhour[[hour]] <- stats(arima_pred5_byhour[[hour]], val_byhour[[hour]])[[3]]
-}
-plot(unlist(arima_stats5_byhour), type='l', ylab = 'MAE', xlab = 'Hour')
-
-
-p <- ggplot(data = data.frame(x=1:24, y=unlist(arima_stats5_byhour)), aes(x=x, y=y)) +
-  geom_point() + 
-  geom_segment( aes(x=x, xend=x, y=0, yend=y)) + xlab('Hours') + ylab('MAE')
-p
-ggsave('plots/mae_perhour.jpg', p, height = 3 , width = 5)
-  
-```
-
-```{r}
-plot_pred(arima_pred5)
-stats_results[nrow(stats_results) + 1,] <- c("arima_mod5", stats(val, arima_pred5))
 ```
 
 ### UCM Models
