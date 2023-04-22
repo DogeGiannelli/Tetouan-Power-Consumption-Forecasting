@@ -136,12 +136,12 @@ sds_bc <- tapply(data_xts_bc, rep(1:334, each = 144), sd)
 #plot(data_xts_bc)
 
 a <- data.frame(cbind(med, sds))
-p <- ggplot(a, aes(x=med, y=sds)) + geom_point(size=0.8) + xlab('Mean') + ylab('Standard deviation') + ggtitle('Before Box-Cox Trasformation - Daily Aggrgation')
+p <- ggplot(a, aes(x=med, y=sds)) + geom_point(size=0.8) + xlab('Mean') + ylab('Standard deviation') + ggtitle('Before Box-Cox Trasformation - Daily Aggregation')
 p
 ggsave('plots/scatter.jpg', p, height = 3 , width = 5)
 
 a <- data.frame(cbind(med_bc, sds_bc))
-p <- ggplot(a, aes(x=med_bc, y=sds_bc)) + geom_point(size=0.8) + xlab('Mean') + ylab('Standard deviation') + ggtitle('After Box-Cox Trasformation - Daily Aggrgation')
+p <- ggplot(a, aes(x=med_bc, y=sds_bc)) + geom_point(size=0.8) + xlab('Mean') + ylab('Standard deviation') + ggtitle('After Box-Cox Trasformation - Daily Aggregation')
 p
 ggsave('plots/scatter_bc.jpg', p, height = 3 , width = 5)
 ```
@@ -227,8 +227,6 @@ val_dummy <- fastDummies::dummy_cols(format(index(val), "%u"), remove_selected_c
 rownames(val_dummy) <- index(val)
 colnames(val_dummy) <- c("mart", "merc", "giov", "ven", "sab", "dom")
 val_dummy <- as.matrix(val_dummy)
-
-#train_arima <- cbind(train, train_dummy)
 ```
 
 Stimo i parametri (p, q, d)
@@ -271,12 +269,8 @@ train |>
 nsdiffs(ts(train, frequency = 144))#require one difference for stationarity 
 ```
 
-################################################################################### 
+
 #### Mod 1
-```{r}
-#train <- (train^lambda - 1) / lambda
-#data_xts <- (data_xts^lambda - 1) / lambda
-```
 
 ```{r}
 arima_mod1 <- function(train) {
@@ -289,18 +283,8 @@ summary(arima_mod1_train)
 ```
 
 ```{r}
-#arima_mod1.plot_diagnostics(figsize=c(7,5))
-#plt.show()
-```
-
-```{r}
-# plot(index(arima_mod1$residuals)/600/144, arima_mod1$residuals, type='l', xlab='Day', ylab='Residual')
-```
-
-```{r}
 arima_pred1 <- forecast(arima_mod1_train, 144*npred)
 plot(arima_pred1)
-#abline(v=val_index*600)
 
 arima_pred1 <- xts(arima_pred1$mean, index(val))
 ```
@@ -315,84 +299,8 @@ stats_results[nrow(stats_results) + 1,] <- c("arima_mod1", stats(val, arima_pred
 Acf(diff(arima_pred1 - val, lag.max = 100))
 ```
 
-#### Mod 2
-
-auto.arima using "aic" without xreg: `ARIMA(2,0,2)(0,1,0)[144]`
-
-```{r}
-# arima_mod2 <- function(train){
-#   auto.arima(y = ts(train, freq = 144),
-#              ic = 'aic',
-#              stepwise = FALSE,
-#              max.p = 2,
-#              max.q = 2,
-#              start.p = 0,
-#              start.q = 0,
-#              start.P = 0,
-#              start.Q = 0,)
-# }
-
-#arima_mod2 <- function(train) {
-#  Arima(y = ts(train, freq = 144),
-#              order = c(0, 1, 1),
-#              seasonal = c(0, 1, 1),
-#              include.constant = FALSE)}
-# arima_mod2_train <- arima_mod2(train)
-# summary(arima_mod2_train)
-```
-
-```{r}
-# arima_pred2 <- forecast(arima_mod2_train, 144*npred)
-# plot(arima_pred2)
-# 
-# arima_pred2 <- xts(arima_pred2$mean, index(val))
-```
-
-```{r}
-# plot_pred(arima_pred2)
-# 
-# stats_results[nrow(stats_results) + 1,] <- c("arima_mod2", stats(val, arima_pred2))
-```
-
-#### Mod 3
-
-auto.arima using "aic" with xreg: `ARIMA(1,0,2)(0,1,0)[144]`
-
-```{r}
-# arima_mod3 <- function(train, train_dummy){
-#   auto.arima(y = ts(train, freq = 144),
-#              ic = 'aic',
-#              stepwise = FALSE,
-#              max.p = 2,
-#              max.q = 2,
-#              start.p = 0,
-#              start.q = 0,
-#              start.P = 0,
-#              start.Q = 0,
-#              xreg = train_dummy)
-# }
-# 
-# arima_mod3_train <- arima_mod3(train, train_dummy)
-# summary(arima_mod3_train)
-```
-
-```{r}
-# arima_pred3 <- forecast(arima_mod3_train,
-#                   144*npred)
-# plot(arima_pred3)
-# abline(v=val_index*600)
-# 
-# arima_pred3 <- xts(arima_pred3$mean, index(val))
-```
-
-```{r}
-# plot_pred(arima_pred3)
-# 
-# stats_results[nrow(stats_results) + 1,] <- c("arima_mod3", stats(val, arima_pred3))
-```
 
 #### Mod 4
-
 ```{r}
 arima_mod4 <- function(train, train_dummy) {
   Arima(y = ts(train, freq = 144),
@@ -431,6 +339,7 @@ p
 ggsave('plots/arima_pred.jpg', p, height = 2 , width = 6)
 ```
 
+################################################################################### DA MANDARE
 ### UCM Models
 
 Definisco il train set per i modelli ucm e una versione ridotta per velocizzare il train
