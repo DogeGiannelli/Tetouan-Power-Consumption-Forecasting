@@ -1,7 +1,7 @@
 ---
 title: "Tetouan Power Forecasting"
 author: "Giannelli Alessio"
-date: ""
+date: "16/06/2023"
 output:
   pdf_document: default
   html_document: default
@@ -509,15 +509,13 @@ Minimo
 
 La serie é abbastanza regolare quindi (a meno di eventi imprevedibili) le predizioni molto probabilemtne ricadono nel range dei valori passati e ne ricalcano i trend
 
-#### Mod 1
-
+#### Mod 3
 ```{r}
 ml_mod1 <- function(train){
   knn_forecasting(ts(train),
                       h = 144*npred,
                       lags = 1:(144*7),
-                      #k = 2,
-                      msas = "MIMO",# cf = "median",
+                      msas = "MIMO",
                       transform = "multiplicative")}
 ```
 
@@ -536,7 +534,7 @@ df_plot_pred <- data.frame(df_plot_pred, date=index(df_plot_pred))
 
 p <- ggplot() + 
   geom_line(data = df_plot_pred, aes(x = date, y = ground_truth)) +
-  geom_line(data = df_plot_pred, aes(x = date, y = pred), color = "#00BA38") +
+  geom_line(data = df_plot_pred, aes(x = date, y = pred), color = "purple") +
   geom_vline(xintercept=as.numeric(df_plot_pred$date[144*4]), linetype=2) +
   xlab('Date') +
   ylab('Power')
@@ -544,118 +542,8 @@ p
 ggsave('plots/ml_pred.jpg', p, height = 2 , width = 6)
 ```
 
-#### Mod 2
 
-```{r}
-ml_mod2 <- function(train){
-  knn_forecasting(ts(train),
-                      h = 144*npred,
-                      lags = 1:(144),
-                      #k = 2,
-                      msas = "MIMO",# cf = "median",
-                      transform = "multiplicative")}
-```
 
-```{r}
-ml_pred2 <- ml_mod2(train)
-ml_pred2 <- xts(ml_pred2$prediction, index(val))
-```
-
-```{r}
-plot_pred(ml_pred2)
-stats_results[nrow(stats_results) + 1,] <- c("ml_mod2", stats(val, ml_pred2))
-```
-
-#### Mod 3
-
-```{r}
-num_lags <- 24*7
-
-# aggregate data by hour
-data_xts_agg <- period.apply(data_xts, endpoints(data_xts, "hours"), mean)
-index(data_xts_agg) <- index(data_xts_agg)-600*2
-
-wday <- wday(time(data_xts_agg), week_start = getOption("lubridate.week.start", 1)) # day of the week
-lags <- embed(data_xts_agg, (num_lags+1))[,-1]
-
-y_ml <- data_xts_agg[-(1:num_lags)]
-x_ml <- cbind(wday[-(1:num_lags)], lags)
-
-# split in train and val
-y_ml_train <- y_ml[1:as.integer(val_index/6-num_lags)]
-x_ml_train <- x_ml[1:as.integer(val_index/6-num_lags),]
-y_ml_val <- y_ml[as.integer(val_index/6-(num_lags-1)):nrow(y_ml)]
-x_ml_val <- x_ml[as.integer(val_index/6-(num_lags-1)):nrow(y_ml),]
-```
-
-```{r}
-# training
-ml_mod3 <- randomForest(x_ml_train, y_ml_train,
-                    ntree=200)
-
-# predictions
-ml_pred3 <- c()
-elem <- x_ml_val[1,] # first elem of val
-
-for (i in 1:nrow(y_ml_val)){
-  pr <- predict(ml_mod3, newdata = elem)
-  elem <- elem[-length(elem)] # remove last elem
-  elem <- append(elem, pr, after=1) # add new elem
-  ml_pred3 <- append(ml_pred3, pr)
-}
-
-ml_pred3 <- as.xts(ml_pred3, order.by = index(y_ml_val))
-
-# imputation
-temp <- xts(rep(as.numeric(NA), length(val)), index(val))
-ml_pred3 <- merge(temp, ml_pred3)$ml_pred3
-ml_pred3 <- na.approx(ml_pred3, na.rm = FALSE)
-ml_pred3 <- na.locf(ml_pred3, na.rm = FALSE)
-ml_pred3 <- na.locf(ml_pred3, fromLast = TRUE)
-names(ml_pred3) <- "V1"
-```
-
-```{r}
-plot_pred(ml_pred3)
-stats_results[nrow(stats_results) + 1,] <- c("ml_mod3", stats(val, ml_pred3))
-```
-
-implementation with ranger
-
-```{r}
-# oo <- data.frame(y_ml_train, x_ml_train)
-# ooo <- data.frame(y_ml_val, x_ml_val)
-# ml_mod3 <- ranger(formula = y_ml_train ~ .,
-#                     data = oo,
-#                     num.trees=100)
-```
-
-```{r}
-# # predictions
-# ml_pred3 <- c()
-# elem <- ooo[1,-1] # first elem of val
-# 
-# for (i in 1:nrow(y_ml_val)){
-#   pr <- predict(ml_mod3, data = elem)$predictions
-#   elem <- elem[,-length(elem)] # remove last elem
-#   add_column(elem, d = pr, .after = 1)
-#   #elem <- append(elem, pr, after=3) # add new elem
-#   ml_pred3 <- append(ml_pred3, pr)
-# }
-# # giusto in giu
-# ml_pred3 <- as.xts(ml_pred3, order.by = index(y_ml_val))
-# 
-# temp <- xts(rep(as.numeric(NA), length(val)), index(val))
-# 
-# ml_pred3 <- merge(temp, ml_pred3)$ml_pred3
-# ml_pred3 <- na.approx(ml_pred3, na.rm = FALSE)
-# ml_pred3 <- na.locf(ml_pred3, na.rm = FALSE)
-# ml_pred3 <- na.locf(ml_pred3, fromLast = TRUE)
-# names(ml_pred3) <- "V1"
-# 
-# stats(val, ml_pred3)
-# plot_pred(ml_pred3)
-```
 
 ## 3. Data prediction
 
@@ -733,7 +621,7 @@ df <- gather(df_plot_pred, Model, Values, Actual:SVM)
 p <- ggplot(data = df, aes(x=date, y=Values)) +
   geom_line(aes(color = Model), size = 0.5) +
   labs(y = "Power", x = '') + 
-  scale_color_manual(values=c("black", "#F8766D", "#00BA38", "#619CFF")) +
+  scale_color_manual(values=c("black", "#F8766D", "purple", "#619CFF")) +
   geom_vline(xintercept=as.numeric(df_plot_pred$date[144*4]), linetype=2)
 p
 
@@ -741,5 +629,5 @@ ggsave('plots/december_forecasts_comparison.jpg', p, height = 3 , width = 3 * 4)
 ```
 
 ```{r}
-write.csv(results, "886725_20230208.csv", row.names=FALSE) # cambiare data
+write.csv(results, "846586_16062023.csv", row.names=FALSE) # cambiare data
 ```
