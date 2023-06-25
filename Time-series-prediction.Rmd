@@ -463,6 +463,13 @@ ucm_mod2 <- function(train) {
   print(fit$optim.out)
   
   # Filtro di karman - Effetua le predizioni - kfs1$muhat contiene una serie storica predetta (anche i dati di train vengono predetti)
+  
+#    State: The state component represents the underlying trend or level of the time series. It captures the long-term changes or variations in the data.
+
+#   Signal: The signal component represents the seasonal patterns or cycles in the time series. It captures the repetitive patterns that occur at specific intervals, such as daily, weekly, or monthly.
+
+#    Disturbance: The disturbance component represents the unexplained or random variations in the time series that cannot be attributed to the trend or seasonal patterns. It captures the noise or residual components of the data.
+  
   kfs <- KFS(fit$model,
              smoothing = c("state", "signal", "disturbance"))
   
